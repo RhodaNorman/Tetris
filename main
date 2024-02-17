@@ -1,0 +1,106 @@
+import pygame
+import random
+
+# Initialize Pygame
+pygame.init()
+
+# Screen size
+SCREEN_WIDTH, SCREEN_HEIGHT = 300, 600
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+# Colors
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+COLORS = [(0, 255, 255), (255, 165, 0), (0, 255, 0), (255, 0, 0), (0, 0, 255), (160, 32, 240), (255, 255, 0)]
+
+# Tetromino shapes
+SHAPES = [
+    [[1, 1, 1, 1]],  # I
+    [[1, 1, 1], [0, 1, 0]],  # T
+    [[1, 1], [1, 1]],  # O
+    [[0, 1, 1], [1, 1, 0]],  # S
+    [[1, 1, 0], [0, 1, 1]],  # Z
+    [[1, 0, 0], [1, 1, 1]],  # J
+    [[0, 0, 1], [1, 1, 1]]  # L
+]
+
+# Parameters
+BLOCK_SIZE = 30  # Size of a block
+BOARD_WIDTH, BOARD_HEIGHT = SCREEN_WIDTH // BLOCK_SIZE, SCREEN_HEIGHT // BLOCK_SIZE
+game_over = False
+clock = pygame.time.Clock()
+fall_time = 0
+
+# The game board
+board = [[0 for _ in range(BOARD_WIDTH)] for _ in range(BOARD_HEIGHT)]
+
+def create_shape():
+    """Returns a new random shape"""
+    return SHAPES[random.randint(0, len(SHAPES) - 1)], random.randint(0, len(COLORS) - 1)
+
+def valid_space(shape, offset):
+    """
+    Check if the shape can be placed at the offset position without any collision.
+    """
+    accepted_pos = [[(j, i) for j in range(BOARD_WIDTH) if board[i][j] == 0] for i in range(BOARD_HEIGHT)]
+    accepted_pos = [j for sub in accepted_pos for j in sub]
+
+    formatted = convert_shape_format(shape, offset)
+
+    for pos in formatted:
+        if pos not in accepted_pos:
+            if pos[1] > -1:
+                return False
+    return True
+
+def convert_shape_format(shape, offset):
+    """
+    Convert shape format for easier handling in the game.
+    """
+    positions = []
+    shape_format = shape[0]
+
+    for i, line in enumerate(shape_format):
+        row = list(line)
+        for j, column in enumerate(row):
+            if column == 1:
+                positions.append((offset[0] + j, offset[1] + i))
+
+    return positions
+
+def draw_window():
+    """
+    Draws the entire game window.
+    """
+    screen.fill(BLACK)
+
+    # Draw the game board
+    for i in range(BOARD_HEIGHT):
+        for j in range(BOARD_WIDTH):
+            pygame.draw.rect(screen, COLORS[board[i][j]], (j * BLOCK_SIZE, i * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE), 0)
+
+    pygame.display.update()
+
+def clear_rows():
+    """
+    Clears completed rows and shifts the rest down.
+    """
+    global board
+    board = [row for row in board if 0 in row]
+    while len(board) < BOARD_HEIGHT:
+        board.insert(0, [0 for _ in range(BOARD_WIDTH)])
+
+shape, shape_color = create_shape()
+shape_pos = [BOARD_WIDTH // 2, 0]
+
+# Game loop
+while not game_over:
+    fall_speed = 0.27
+    fall_time += clock.get_rawtime()
+    clock.tick()
+
+    if fall_time / 1000 >= fall_speed:
+        fall_time = 0
+        shape_pos[1] += 1
+        if not (valid_space(shape, (shape_pos[0], shape_pos[1]))):
+            shape_pos[
